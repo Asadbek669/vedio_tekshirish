@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Professional Video URL Tekshiruv</title>
+
+  <style>
+    :root{
+      --bg:#0b1220; --card:#0f1724; --muted:#98b0c9; --accent:#4f46e5; --good:#10b981; --bad:#ef4444; --warn:#f59e0b;
+      --glass: rgba(255,255,255,0.03);
+      --max-width:980px;
+      --radius:12px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background: linear-gradient(180deg,var(--bg), #071024);
+      color:#e6eef8;
+      display:flex;
+      align-items:flex-start;
+      justify-content:center;
+      padding:36px 18px;
+    }
+    .container{
+      width:100%;
+      max-width:var(--max-width);
+    }
+    header{
+      display:flex;
+      gap:16px;
+      align-items:center;
+      margin-bottom:18px;
+    }
+    h1{font-size:20px;margin:0}
+    p.lead{margin:0;color:var(--muted);font-size:13px}
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border:1px solid rgba(255,255,255,0.04);
+      padding:18px;
+      border-radius:var(--radius);
+      box-shadow: 0 10px 30px rgba(2,6,23,0.6);
+    }
+    .row{display:flex; gap:12px; align-items:center}
+    input[type="url"]{
+      flex:1;
+      padding:12px 14px;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,0.04);
+      background:transparent;
+      color:inherit;
+      outline:none;
+      font-size:14px;
+    }
+    button{
+      background:var(--accent);
+      color:white;
+      border:none;
+      padding:10px 12px;
+      border-radius:10px;
+      cursor:pointer;
+      font-weight:600;
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+    }
+    button.secondary{
+      background:transparent;
+      border:1px solid rgba(255,255,255,0.06);
+      color:var(--muted);
+      font-weight:600;
+      padding:8px 10px;
+    }
+    .controls{margin-top:12px; display:flex; gap:8px; flex-wrap:wrap}
+    .main-grid{
+      display:grid;
+      grid-template-columns: 1fr 360px;
+      gap:16px;
+      margin-top:16px;
+    }
+    .panel{background:var(--card); padding:14px; border-radius:10px; border:1px solid rgba(255,255,255,0.03); min-height:120px}
+    .logs{height:320px; overflow:auto; background:linear-gradient(180deg,#071026, #05101b); padding:12px; border-radius:8px; font-family:monospace; font-size:13px}
+    .status{font-weight:700; margin-bottom:8px}
+    .badge{display:inline-block;padding:6px 8px;border-radius:8px;font-weight:700;font-size:13px}
+    .good{background:rgba(16,185,129,0.12); color:var(--good); border:1px solid rgba(16,185,129,0.12)}
+    .bad{background:rgba(239,68,68,0.08); color:var(--bad)}
+    .warn{background:rgba(245,158,11,0.08); color:var(--warn)}
+    .info{background:rgba(79,70,229,0.08); color:var(--accent)}
+    .field {margin-top:10px}
+    .small{font-size:13px;color:var(--muted)}
+    .mini {
+      font-size:12px;
+      color:var(--muted);
+      margin-top:8px;
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .probeVideo{width:100%; max-height:240px; background:#000; border-radius:8px; display:block}
+    footer{margin-top:18px;color:var(--muted); font-size:13px}
+    .toggle{display:flex; gap:8px; align-items:center}
+    label.switch{position:relative; display:inline-block; width:44px; height:24px}
+    label.switch input{display:none}
+    label.switch .slider{position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background:#263143; border-radius:999px; transition:.2s}
+    label.switch .knob{position:absolute; height:20px; width:20px; left:2px; top:2px; background:#fff; border-radius:50%; transition:.2s}
+    label.switch input:checked + .slider{background:var(--accent)}
+    label.switch input:checked + .slider .knob{transform:translateX(20px)}
+    @media (max-width:980px){
+      .main-grid{grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>Professional Video URL Tekshiruv</h1>
+        <p class="lead">Tezkor tekshiruv: HEAD → Range GET → Video test. Aniq HTTP kodlari uchun server proxy tavsiya etiladi.</p>
+      </div>
+    </header>
+
+    <div class="card">
+      <div class="row">
+        <input id="url" type="url" placeholder="https://cdn.example.com/video.mp4 yoki https://stream.example.com/hls/playlist.m3u8" />
+        <button id="checkBtn">Tekshirish</button>
+        <button id="openBtn" class="secondary" disabled>Ochilishi</button>
+        <button id="downloadBtn" class="secondary" disabled>Yuklab olish</button>
+      </div>
+
+      <div class="controls">
+        <div class="toggle">
+          <label class="switch">
+            <input id="useProxy" type="checkbox">
+            <span class="slider"><span class="knob"></span></span>
+          </label>
+          <div class="small">Server proxy ishlatish (tavsiya etiladi)</div>
+        </div>
+
+        <div class="field small" style="margin-left:auto">
+          Video test muddati:
+          <select id="timeoutSelect" class="small">
+            <option value="2000">2s</option>
+            <option value="3000" selected>3s</option>
+            <option value="5000">5s</option>
+            <option value="8000">8s</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="main-grid">
+        <div>
+          <div class="panel">
+            <div class="status" id="summary">Tayyor</div>
+
+            <div id="details" class="small">
+              <div><strong>Oxirgi tekshiruv:</strong> <span id="lastCheck">—</span></div>
+              <div><strong>Tekshiruv rejimi:</strong> <span id="probeMode">HEAD → Range → Video</span></div>
+            </div>
+
+            <div class="field">
+              <div class="small">HTTP ma’lumotlari</div>
+              <div id="httpInfo" class="mini"><span class="small">Hali ma’lumot yo‘q</span></div>
+            </div>
+
+            <div class="field">
+              <div class="small">Video tekshiruv natijasi</div>
+              <div id="probeResult" class="mini"><span class="small">Hali tekshirilmagan</span></div>
+            </div>
+
+            <div class="field">
+              <div class="small">Tavsiyalar</div>
+              <div id="recommend" class="mini"><span class="small">—</span></div>
+            </div>
+          </div>
+
+          <div style="margin-top:12px" class="panel">
+            <div style="display:flex; justify-content:space-between; align-items:center">
+              <strong>Jonli video testi</strong>
+              <div class="small">Video testi ishga tushganda ko‘rinadi</div>
+            </div>
+            <div id="videoHolder" style="margin-top:10px; display:none">
+              <video id="probeVideo" class="probeVideo" controls muted playsinline></video>
+            </div>
+          </div>
+        </div>
+
+        <aside>
+          <div class="panel">
+            <div style="display:flex; justify-content:space-between; align-items:center">
+              <strong>Loglar</strong>
+              <div class="small">Real vaqt diagnostikasi</div>
+            </div>
+            <div id="logs" class="logs" aria-live="polite">Tayyor.</div>
+            <div style="margin-top:10px; display:flex; gap:8px">
+              <button id="copyLog" class="secondary">Logni nusxalash</button>
+              <button id="clearLog" class="secondary">Tozalash</button>
+            </div>
+          </div>
+
+          <div class="panel" style="margin-top:12px">
+            <div class="small"><strong>Proxy bo‘yicha ko‘rsatmalar</strong></div>
+            <div class="small" style="margin-top:8px">
+              CORS sababli HEAD/GET bloklanmasligi uchun Node.js proxy serveridan foydalaning. Ushbu qayta yo‘naltiruvchi (proxy) siz uchun aniq HTTP status qaytaradi.
+            </div>
+            <div style="margin-top:10px" class="mini">
+              Proxy URL: 
+              <input id="proxyUrl" class="small" placeholder="http://localhost:3000/proxy?url=" style="background:none;border:1px solid rgba(255,255,255,0.04);color:var(--muted);padding:6px;border-radius:6px; width:100%" />
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <footer>© Video Tekshiruvchi — Brauzer cheklovlari (CORS) aniqlikka ta’sir qilishi mumkin. Aniq natijalar uchun server proxy ishlating.</footer>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const urlInput = document.getElementById('url');
+      const checkBtn = document.getElementById('checkBtn');
+      const openBtn = document.getElementById('openBtn');
+      const downloadBtn = document.getElementById('downloadBtn');
+      const useProxy = document.getElementById('useProxy');
+      const proxyUrl = document.getElementById('proxyUrl');
+      const logs = document.getElementById('logs');
+      const summary = document.getElementById('summary');
+      const httpInfo = document.getElementById('httpInfo');
+      const probeResult = document.getElementById('probeResult');
+      const recommend = document.getElementById('recommend');
+      const lastCheck = document.getElementById('lastCheck');
+      const videoHolder = document.getElementById('videoHolder');
+      const probeVideo = document.getElementById('probeVideo');
+      const timeoutSelect = document.getElementById('timeoutSelect');
+      const copyLog = document.getElementById('copyLog');
+      const clearLog = document.getElementById('clearLog');
+
+      function now(){ return new Date().toLocaleString() }
+      function appendLog(msg){
+        const t = new Date().toLocaleTimeString();
+        logs.textContent = `[${t}] ${msg}\n` + logs.textContent;
+      }
+      function setSummary(text, cls){
+        summary.textContent = text;
+        summary.className = 'status ' + (cls||'');
+      }
+      function setHttpInfo(html){
+        httpInfo.innerHTML = html;
+      }
+      function setProbeResult(html){
+        probeResult.innerHTML = html;
+      }
+      function setRecommend(html){
+        recommend.innerHTML = html;
+      }
+
+      async function fetchWithTimeout(url, opts={}, timeout=4000){
+        const controller = new AbortController();
+        const id = setTimeout(()=>controller.abort(), timeout);
+        try {
+          const res = await fetch(url, {...opts, signal: controller.signal});
+          clearTimeout(id);
+          return res;
+        } catch (e) {
+          clearTimeout(id);
+          throw e;
+        }
+      }
+
+      async function performChecks(url){
+        appendLog('Tekshiruv boshlandi: ' + url);
+        setSummary('Tekshirilmoqda…', 'info');
+        setHttpInfo('—');
+        setProbeResult('—');
+        setRecommend('—');
+
+        openBtn.disabled = true;
+        downloadBtn.disabled = true;
+        videoHolder.style.display = 'none';
+        probeVideo.src = '';
+
+        let finalStatus = null;
+        let headersInfo = {};
+        const proxyEnabled = useProxy.checked && proxyUrl.value.trim();
+
+        async function proxyFetch(target, method='HEAD', timeout=4000){
+          const p = proxyUrl.value.trim();
+          if (!p) throw new Error('Proxy sozlanmagan');
+          const u = p + encodeURIComponent(target) + '&_method=' + method;
+          return fetchWithTimeout(u, { method:'GET' }, timeout);
+        }
+
+        // 1) HEAD
+        try {
+          appendLog('HEAD so‘rovi yuborildi');
+          let res;
+          if (proxyEnabled) {
+            appendLog('HEAD uchun proxy ishlatilmoqda');
+            res = await proxyFetch(url, 'HEAD', 4000);
+          } else {
+            res = await fetchWithTimeout(url, { method:'HEAD', mode:'cors' }, 4000);
+          }
+          appendLog('HEAD status: ' + res.status);
+          headersInfo.headStatus = res.status;
+          finalStatus = res.status;
+
+          if (res.status === 403) {
+            setSummary('403 Forbidden (server ruxsat bermadi)', 'bad');
+            setHttpInfo(`<span class="badge bad">403 Forbidden</span>`);
+            setProbeResult('Server kirishni rad etdi (403).');
+            setRecommend('URL ni yangi oynada oching yoki proxy ishlating.');
+            openBtn.disabled = false;
+            downloadBtn.disabled = false;
+            lastCheck.textContent = now();
+            return;
+          }
+
+          if ((res.status >=200 && res.status < 300) || res.status === 206 || (res.status >=300 && res.status<400)) {
+            setSummary('Ommaviy / ochiq (HEAD)', 'good');
+            setHttpInfo(`<span class="badge good">HEAD ${res.status}</span>`);
+            setProbeResult('HEAD so‘rovi muvaffaqiyatli.');
+            openBtn.disabled = false;
+            downloadBtn.disabled = false;
+            lastCheck.textContent = now();
+            return;
+          }
+
+          appendLog('HEAD muvaffaqiyatsiz, Range GET ga o‘tilmoqda');
+        } catch (e) {
+          appendLog('HEAD xato: ' + (e.name || e.message));
+        }
+
+        // 2) Range GET
+        try {
+          appendLog('Range GET (bytes=0-1023) yuborilmoqda');
+          let res;
+          if (proxyEnabled) {
+            appendLog('Range GET uchun proxy ishlatilmoqda');
+            res = await proxyFetch(url, 'GET', 5000);
+          } else {
+            res = await fetchWithTimeout(url, { method:'GET', headers:{ Range:'bytes=0-1023' }, mode:'cors' }, 5000);
+          }
+          appendLog('Range GET status: ' + res.status);
+          headersInfo.rangeStatus = res.status;
+          finalStatus = res.status;
+
+          if (res.status === 403) {
+            setSummary('403 Forbidden (Range GET)', 'bad');
+            setHttpInfo(`<span class="badge bad">Range ${res.status}</span>`);
+            setProbeResult('Server Range so‘rovga ruxsat bermadi (403).');
+            setRecommend('Proxy yoki yangi oyna orqali kirib ko‘ring.');
+            openBtn.disabled = false;
+            downloadBtn.disabled = false;
+            lastCheck.textContent = now();
+            return;
+          }
+
+          if ((res.status >=200 && res.status < 300) || res.status === 206) {
+            setSummary('Ochiq / ommaviy (Range GET)', 'good');
+            setHttpInfo(`<span class="badge good">Range ${res.status}</span>`);
+            setProbeResult('Range GET muvaffaqiyatli.');
+            openBtn.disabled = false;
+            downloadBtn.disabled = false;
+            lastCheck.textContent = now();
+            return;
+          }
+
+          appendLog('Range GET muvaffaqiyatsiz, video testga o‘tilmoqda');
+        } catch (e) {
+          appendLog('Range GET xato: ' + (e.name || e.message));
+        }
+
+        // 3) Video test
+        try {
+          appendLog('Video testi boshlandi (' + timeoutSelect.value + 'ms)');
+          const probeTimeout = parseInt(timeoutSelect.value, 10) || 3000;
+          videoHolder.style.display = 'block';
+          probeVideo.src = url;
+          probeVideo.crossOrigin = 'anonymous';
+          probeVideo.preload = 'metadata';
+
+          await new Promise((resolve) => {
+            let done = false;
+            const t = setTimeout(() => {
+              if (done) return;
+              done = true;
+              probeVideo.pause();
+              probeVideo.removeAttribute('src');
+              probeVideo.load();
+              appendLog('Video testi vaqt tugadi');
+              resolve();
+            }, probeTimeout);
+
+            probeVideo.onloadedmetadata = () => {
+              if (done) return;
+              done = true;
+              clearTimeout(t);
+              appendLog('Video metadata yuklandi — o‘qilishi mumkin');
+              resolve();
+            };
+
+            probeVideo.onerror = () => {
+              if (done) return;
+              done = true;
+              clearTimeout(t);
+              appendLog('Video yuklashda xato (CORS yoki format)');
+              probeVideo.pause();
+              probeVideo.removeAttribute('src');
+              probeVideo.load();
+              resolve();
+            };
+          });
+
+          if (probeVideo.readyState >= 1) {
+            setSummary('Video o‘qilishi mumkin (metadata yuklandi)', 'good');
+            setProbeResult('Brauzer videoni o‘qiy oladi.');
+            setHttpInfo(`<span class="badge good">Playable</span>`);
+            openBtn.disabled = false;
+            downloadBtn.disabled = false;
+            lastCheck.textContent = now();
+            return;
+          }
+        } catch (e) {
+          appendLog('Video testi xato: ' + (e.message));
+        }
+
+        // 4) Unknown
+        setSummary('Noma’lum — ehtimol CORS yoki bloklangan', 'warn');
+        setProbeResult('Hech bir tekshiruv aniq natija bermadi.');
+        setHttpInfo('<span class="badge warn">Noma’lum</span>');
+        setRecommend('Aniq HTTP kodlari uchun server proxydan foydalaning.');
+        openBtn.disabled = false;
+        downloadBtn.disabled = false;
+        lastCheck.textContent = now();
+        appendLog('Tekshiruv tugadi: noma’lum');
+
+      }
+
+      checkBtn.addEventListener('click', async () => {
+        const val = urlInput.value.trim();
+        if (!val) { alert('URL kiriting'); return; }
+        appendLog('Foydalanuvchi tekshiruvni boshladi: ' + val);
+        try {
+          await performChecks(val);
+        } catch (e) {
+          appendLog('Kutilmagan xato: ' + (e.message || e));
+          setSummary('Tekshiruvda xato yuz berdi', 'bad');
+        }
+      });
+
+      openBtn.addEventListener('click', () => {
+        const val = urlInput.value.trim();
+        if (val) window.open(val, '_blank', 'noopener');
+      });
+
+      downloadBtn.addEventListener('click', () => {
+        const val = urlInput.value.trim();
+        if (!val) return;
+        const a = document.createElement('a');
+        a.href = val;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.download = '';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      });
+
+      copyLog.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(logs.textContent);
+          appendLog('Loglar nusxalandi');
+        } catch {
+          appendLog('Nusxalash imkonsiz');
+        }
+      });
+
+      clearLog.addEventListener('click', () => { logs.textContent = 'Tozalandi.\n'; });
+
+      urlInput.addEventListener('keydown', (e)=> { if (e.key === 'Enter') checkBtn.click(); });
+
+      proxyUrl.value = 'http://localhost:3000/proxy?url=';
+    })();
+  </script>
+</body>
+</html>
